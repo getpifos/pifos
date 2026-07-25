@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 
@@ -1261,6 +1262,90 @@ tr.clickable-row:hover td{background:var(--surface3)!important;}
 .week-day-header { background:var(--surface2); padding:10px 6px; text-align:center; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; border-bottom:1px solid var(--border); }
 .week-day-header.today-col { color:var(--blue); }
 .week-slot { height:56px; border-bottom:1px solid var(--border); position:relative; padding:2px; }
+
+/* ─── AUTH LOGIN OVERLAY ───────────────────────── */
+#authOverlay{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .3s;
+}
+#authOverlay.auth-hidden{
+  opacity:0;pointer-events:none;
+}
+.auth-card{
+  width:100%;max-width:380px;
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:16px;
+  padding:40px 36px 36px;
+  display:flex;flex-direction:column;gap:24px;
+}
+.auth-logo{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:4px;
+}
+.auth-emblem{
+  width:40px;height:40px;
+  background:transparent;
+  display:block;
+  flex-shrink:0;
+  object-fit:contain;
+}
+.auth-wordmark{
+  font-size:20px;font-weight:700;color:var(--text-primary);letter-spacing:-.5px;
+}
+.auth-wordmark span{color:#9e4efa;}
+.auth-tagline{
+  font-size:12px;color:var(--text-muted);margin-top:2px;
+}
+.auth-fields{
+  display:flex;flex-direction:column;gap:12px;
+}
+.auth-field-label{
+  font-size:11px;font-weight:600;color:var(--text-secondary);
+  text-transform:uppercase;letter-spacing:.5px;
+  margin-bottom:5px;
+}
+.auth-input{
+  width:100%;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:8px;
+  padding:10px 14px;
+  color:var(--text-primary);
+  font-family:inherit;font-size:13px;
+  outline:none;
+  transition:border-color .15s;
+}
+.auth-input:focus{border-color:var(--blue);}
+.auth-input::placeholder{color:var(--text-muted);}
+.auth-btn{
+  width:100%;
+  background:linear-gradient(135deg,#9e4efa 0%,#6f32e8 100%);
+  border:none;border-radius:8px;
+  padding:12px;
+  color:#fff;font-family:inherit;font-size:13px;font-weight:600;
+  cursor:pointer;letter-spacing:.2px;
+  transition:opacity .15s,transform .1s;
+}
+.auth-btn:hover{opacity:.9;}
+.auth-btn:active{transform:scale(.99);}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed;}
+.auth-error{
+  background:var(--red-dim);
+  border:1px solid var(--red);
+  border-radius:8px;
+  padding:10px 14px;
+  color:var(--red);
+  font-size:12px;
+  display:none;
+}
+.auth-error.show{display:block;}
+.auth-footer{
+  text-align:center;
+  font-size:11px;color:var(--text-muted);
+}
 </style>
 </head>
 <body>
@@ -1450,6 +1535,16 @@ tr.clickable-row:hover td{background:var(--surface3)!important;}
           <button class="pm-refresh-btn" onclick="triggerRefresh()">↻ Refresh</button>
         </div>
         <div style="padding:2px 10px 8px;font-size:10px;color:var(--text-muted)" id="pmUpdated">Updated —</div>
+      </div>
+
+      <!-- Sign out -->
+      <div class="pm-section">
+        <button class="pm-row" style="color:var(--red)" onclick="pifosSignOut()">
+          <span class="pm-row-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h7M9 5l2 2-2 2"/><path d="M9 2H3a1 1 0 00-1 1v8a1 1 0 001 1h6"/></svg>
+          </span>
+          Sign Out
+        </button>
       </div>
 
     </div><!-- /profile-menu -->
@@ -1764,6 +1859,52 @@ tr.clickable-row:hover td{background:var(--surface3)!important;}
       </div>
     </div>
 
+    <!-- Post-Call Outcomes -->
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="sec-title">Post-Call Outcomes</div>
+        <div class="sec-meta">5-path Zapier flow · 58 total calls</div>
+      </div>
+      <div class="outcomes-grid">
+        <div class="outcome-tile" onclick="openSDrw('outcome','closed-pif')">
+          <div class="outcome-label">Closed (PIF)</div>
+          <div class="outcome-val" style="color:var(--green)">6</div>
+          <div class="outcome-pct">10.3%</div>
+          <div class="outcome-icon">✓</div>
+        </div>
+        <div class="outcome-tile" onclick="openSDrw('outcome','closed-dep')">
+          <div class="outcome-label">Closed (Deposit)</div>
+          <div class="outcome-val" style="color:var(--blue)">3</div>
+          <div class="outcome-pct">5.2%</div>
+          <div class="outcome-icon">🔗</div>
+        </div>
+        <div class="outcome-tile" onclick="openSDrw('outcome','followup')">
+          <div class="outcome-label">Follow-Up</div>
+          <div class="outcome-val" style="color:var(--amber)">15</div>
+          <div class="outcome-pct">25.9%</div>
+          <div class="outcome-icon">↺</div>
+        </div>
+        <div class="outcome-tile" onclick="openSDrw('outcome','noclose')">
+          <div class="outcome-label">No Close</div>
+          <div class="outcome-val">1</div>
+          <div class="outcome-pct">1.7%</div>
+          <div class="outcome-icon">✕</div>
+        </div>
+        <div class="outcome-tile" onclick="openSDrw('outcome','dq')">
+          <div class="outcome-label">Disqualified</div>
+          <div class="outcome-val" style="color:var(--orange)">9</div>
+          <div class="outcome-pct">15.5%</div>
+          <div class="outcome-icon">🚫</div>
+        </div>
+        <div class="outcome-tile" onclick="openSDrw('outcome','noshow')">
+          <div class="outcome-label">Other / No Show</div>
+          <div class="outcome-val">24</div>
+          <div class="outcome-pct">41.4%</div>
+          <div class="outcome-icon">📅</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Setter Performance (Closer view) -->
     <div class="sec">
       <div class="sec-hd">
@@ -1804,7 +1945,44 @@ tr.clickable-row:hover td{background:var(--surface3)!important;}
       </div>
     </div>
 
-    <!-- Transaction Log -->
+    <!-- No-Show Recovery -->
+    <div class="sec">
+      <div class="sec-hd">
+        <div class="sec-title">No-Show Recovery</div>
+        <div class="sec-meta">14 to recover · sorted by priority</div>
+      </div>
+      <div class="t-wrap">
+        <table class="pipe-table">
+          <thead>
+            <tr>
+              <th>Contact</th>
+              <th>No-Show Date</th>
+              <th>Days Since</th>
+              <th>Notes</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+<tr class="clickable-row" onclick="openSDrw('noshow',0)" style="cursor:pointer"><td>Maya Johnson</td><td>Jul 22</td><td style="color:var(--green)">3</td><td>First no-show, high-intent lead</td><td><span class="badge" style="background:var(--green-dim);color:var(--green)">Re-book</span></td></tr>
+<tr class="clickable-row" onclick="openSDrw('noshow',1)" style="cursor:pointer"><td>Tanya Garcia</td><td>Jul 20</td><td style="color:var(--green)">5</td><td>Re-contacted Jul 21, waiting for reply</td><td><span class="badge" style="background:var(--green-dim);color:var(--green)">Re-book</span></td></tr>
+<tr class="clickable-row" onclick="openSDrw('noshow',2)" style="cursor:pointer"><td>Lisa Chen</td><td>Jul 17</td><td style="color:var(--amber)">8</td><td>No response to DM yet</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">DM</span></td></tr>
+<tr class="clickable-row" onclick="openSDrw('noshow',3)" style="cursor:pointer"><td>Brian Smith</td><td>Jul 14</td><td style="color:var(--amber)">11</td><td>Re-booked once before, no-showed again</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">DM</span></td></tr>
+<tr class="clickable-row" onclick="openSDrw('noshow',4)" style="cursor:pointer"><td>Rachel Davis</td><td>Jul 10</td><td style="color:var(--red)">16</td><td>Final outreach recommended</td><td><span class="badge" style="background:var(--red-dim);color:var(--red)">Final</span></td></tr>
+<tr class="clickable-row" onclick="openSDrw('noshow',5)" style="cursor:pointer"><td>Priya Wilson</td><td>Jul 18</td><td style="color:var(--amber)">7</td><td>Said she had an emergency, wants to reschedule</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">DM</span></td></tr>
+<tr class="clickable-row" onclick="openSDrw('noshow',6)" style="cursor:pointer"><td>Christine Adams</td><td>Jul 16</td><td style="color:var(--amber)">9</td><td>No contact made yet</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">DM</span></td></tr>
+<tr class="clickable-row" onclick="openSDrw('noshow',7)" style="cursor:pointer"><td>Nathan Jackson</td><td>Jul 13</td><td style="color:var(--amber)">12</td><td>Replied to SMS, reconsidering</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">Warm</span></td></tr>
+<tr class="clickable-row" onclick="openSDrw('noshow',8)" style="cursor:pointer"><td>Darnell Lewis</td><td>Jul 11</td><td style="color:var(--red)">14</td><td>No response to email or DM</td><td><span class="badge" style="background:var(--red-dim);color:var(--red)">Final</span></td></tr>
+<tr class="clickable-row" onclick="openSDrw('noshow',9)" style="cursor:pointer"><td>Samantha Harris</td><td>Jul 10</td><td style="color:var(--red)">17</td><td>Very cold — last attempt</td><td><span class="badge" style="background:var(--red-dim);color:var(--red)">Final</span></td></tr>
+<tr class="clickable-row" onclick="openSDrw('noshow',10)" style="cursor:pointer"><td>Amanda White</td><td>Jul 19</td><td style="color:var(--green)">6</td><td>Confirmed re-book for Jul 28</td><td><span class="badge" style="background:var(--green-dim);color:var(--green)">Re-book</span></td></tr>
+<tr class="clickable-row" onclick="openSDrw('noshow',11)" style="cursor:pointer"><td>Ethan Brown</td><td>Jul 15</td><td style="color:var(--amber)">10</td><td>Clicked new booking link, check if booked</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">Check</span></td></tr>
+<tr class="clickable-row" onclick="openSDrw('noshow',12)" style="cursor:pointer"><td>Fatima Martinez</td><td>Jul 12</td><td style="color:var(--amber)">13</td><td>Going cold — DM today</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">DM</span></td></tr>
+<tr class="clickable-row" onclick="openSDrw('noshow',13)" style="cursor:pointer"><td>Grace Thomas</td><td>Jul 10</td><td style="color:var(--red)">18</td><td>Archive if no reply this week</td><td><span class="badge" style="background:var(--red-dim);color:var(--red)">Final</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+<!-- Transaction Log -->
     <div class="sec">
       <div class="sec-hd">
         <div>
@@ -1996,145 +2174,7 @@ tr.clickable-row:hover td{background:var(--surface3)!important;}
       </div>
     </div>
 
-    <!-- Post-Call Outcomes -->
-    <div class="sec">
-      <div class="sec-hd">
-        <div class="sec-title">Post-Call Outcomes</div>
-        <div class="sec-meta">5-path Zapier flow · 58 total calls</div>
-      </div>
-      <div class="outcomes-grid">
-        <div class="outcome-tile" onclick="openSDrw('outcome','closed-pif')">
-          <div class="outcome-label">Closed (PIF)</div>
-          <div class="outcome-val" style="color:var(--green)">6</div>
-          <div class="outcome-pct">10.3%</div>
-          <div class="outcome-icon">✓</div>
-        </div>
-        <div class="outcome-tile" onclick="openSDrw('outcome','closed-dep')">
-          <div class="outcome-label">Closed (Deposit)</div>
-          <div class="outcome-val" style="color:var(--blue)">3</div>
-          <div class="outcome-pct">5.2%</div>
-          <div class="outcome-icon">🔗</div>
-        </div>
-        <div class="outcome-tile" onclick="openSDrw('outcome','followup')">
-          <div class="outcome-label">Follow-Up</div>
-          <div class="outcome-val" style="color:var(--amber)">15</div>
-          <div class="outcome-pct">25.9%</div>
-          <div class="outcome-icon">↺</div>
-        </div>
-        <div class="outcome-tile" onclick="openSDrw('outcome','noclose')">
-          <div class="outcome-label">No Close</div>
-          <div class="outcome-val">1</div>
-          <div class="outcome-pct">1.7%</div>
-          <div class="outcome-icon">✕</div>
-        </div>
-        <div class="outcome-tile" onclick="openSDrw('outcome','dq')">
-          <div class="outcome-label">Disqualified</div>
-          <div class="outcome-val" style="color:var(--orange)">9</div>
-          <div class="outcome-pct">15.5%</div>
-          <div class="outcome-icon">🚫</div>
-        </div>
-        <div class="outcome-tile" onclick="openSDrw('outcome','noshow')">
-          <div class="outcome-label">Other / No Show</div>
-          <div class="outcome-val">24</div>
-          <div class="outcome-pct">41.4%</div>
-          <div class="outcome-icon">📅</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Setter Performance + Call Status -->
-    <div class="two-col">
-      <div>
-        <div class="sec-hd">
-          <div class="sec-title">Setter Performance</div>
-          <div class="sec-meta">Calls attributed via Post Call setter column</div>
-        </div>
-        <div class="t-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Setter</th>
-                <th>Booked</th>
-                <th>Live</th>
-                <th>Closes</th>
-                <th>Show %</th>
-                <th>Close %</th>
-                <th>Cash Collected</th>
-                <th>Commission (5%)</th>
-              </tr>
-            </thead>
-            <tbody id="setterTable">
-              <tr class="clickable-row" onclick="openSDrw('setter','Your Setter')" style="cursor:pointer">
-                <td>Your Setter</td>
-                <td>56</td><td>23</td><td>8</td>
-                <td>41.1%</td><td>34.8%</td>
-                <td>$19,494</td>
-                <td class="td-green">$975</td>
-              </tr>
-              <tr class="clickable-row" onclick="openSDrw('setter','Unattributed')" style="cursor:pointer">
-                <td class="td-muted">Unattributed</td>
-                <td>1</td><td>1</td><td>1</td>
-                <td>100.0%</td><td>100.0%</td>
-                <td>$997</td>
-                <td class="td-green">$50</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div>
-        <div class="sec-hd">
-          <div class="sec-title">Call Status Breakdown</div>
-          <div class="sec-meta"></div>
-        </div>
-        <div class="card" style="padding:16px;">
-          <canvas id="donutChart" height="160"></canvas>
-        </div>
-      </div>
-    </div>
-
-
-    <!-- No-Show Recovery -->
-    <div class="sec">
-      <div class="sec-hd">
-        <div class="sec-title">No-Show Recovery</div>
-        <div class="sec-meta">14 to recover · sorted by priority</div>
-      </div>
-      <div class="t-wrap">
-        <table class="pipe-table">
-          <thead>
-            <tr>
-              <th>Contact</th>
-              <th>No-Show Date</th>
-              <th>Days Since</th>
-              <th>Notes</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-<tr class="clickable-row" onclick="openSDrw('noshow',0)" style="cursor:pointer"><td>Maya Johnson</td><td>Jul 22</td><td style="color:var(--green)">3</td><td>First no-show, high-intent lead</td><td><span class="badge" style="background:var(--green-dim);color:var(--green)">Re-book</span></td></tr>
-<tr class="clickable-row" onclick="openSDrw('noshow',1)" style="cursor:pointer"><td>Tanya Garcia</td><td>Jul 20</td><td style="color:var(--green)">5</td><td>Re-contacted Jul 21, waiting for reply</td><td><span class="badge" style="background:var(--green-dim);color:var(--green)">Re-book</span></td></tr>
-<tr class="clickable-row" onclick="openSDrw('noshow',2)" style="cursor:pointer"><td>Lisa Chen</td><td>Jul 17</td><td style="color:var(--amber)">8</td><td>No response to DM yet</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">DM</span></td></tr>
-<tr class="clickable-row" onclick="openSDrw('noshow',3)" style="cursor:pointer"><td>Brian Smith</td><td>Jul 14</td><td style="color:var(--amber)">11</td><td>Re-booked once before, no-showed again</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">DM</span></td></tr>
-<tr class="clickable-row" onclick="openSDrw('noshow',4)" style="cursor:pointer"><td>Rachel Davis</td><td>Jul 10</td><td style="color:var(--red)">16</td><td>Final outreach recommended</td><td><span class="badge" style="background:var(--red-dim);color:var(--red)">Final</span></td></tr>
-<tr class="clickable-row" onclick="openSDrw('noshow',5)" style="cursor:pointer"><td>Priya Wilson</td><td>Jul 18</td><td style="color:var(--amber)">7</td><td>Said she had an emergency, wants to reschedule</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">DM</span></td></tr>
-<tr class="clickable-row" onclick="openSDrw('noshow',6)" style="cursor:pointer"><td>Christine Adams</td><td>Jul 16</td><td style="color:var(--amber)">9</td><td>No contact made yet</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">DM</span></td></tr>
-<tr class="clickable-row" onclick="openSDrw('noshow',7)" style="cursor:pointer"><td>Nathan Jackson</td><td>Jul 13</td><td style="color:var(--amber)">12</td><td>Replied to SMS, reconsidering</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">Warm</span></td></tr>
-<tr class="clickable-row" onclick="openSDrw('noshow',8)" style="cursor:pointer"><td>Darnell Lewis</td><td>Jul 11</td><td style="color:var(--red)">14</td><td>No response to email or DM</td><td><span class="badge" style="background:var(--red-dim);color:var(--red)">Final</span></td></tr>
-<tr class="clickable-row" onclick="openSDrw('noshow',9)" style="cursor:pointer"><td>Samantha Harris</td><td>Jul 10</td><td style="color:var(--red)">17</td><td>Very cold — last attempt</td><td><span class="badge" style="background:var(--red-dim);color:var(--red)">Final</span></td></tr>
-<tr class="clickable-row" onclick="openSDrw('noshow',10)" style="cursor:pointer"><td>Amanda White</td><td>Jul 19</td><td style="color:var(--green)">6</td><td>Confirmed re-book for Jul 28</td><td><span class="badge" style="background:var(--green-dim);color:var(--green)">Re-book</span></td></tr>
-<tr class="clickable-row" onclick="openSDrw('noshow',11)" style="cursor:pointer"><td>Ethan Brown</td><td>Jul 15</td><td style="color:var(--amber)">10</td><td>Clicked new booking link, check if booked</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">Check</span></td></tr>
-<tr class="clickable-row" onclick="openSDrw('noshow',12)" style="cursor:pointer"><td>Fatima Martinez</td><td>Jul 12</td><td style="color:var(--amber)">13</td><td>Going cold — DM today</td><td><span class="badge" style="background:var(--amber-dim);color:var(--amber)">DM</span></td></tr>
-<tr class="clickable-row" onclick="openSDrw('noshow',13)" style="cursor:pointer"><td>Grace Thomas</td><td>Jul 10</td><td style="color:var(--red)">18</td><td>Archive if no reply this week</td><td><span class="badge" style="background:var(--red-dim);color:var(--red)">Final</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-
-
-  </div><!-- /tab-sales -->
+</div><!-- /tab-sales -->
 
 
   <!-- ─── FUNNEL TRACKER ──────────────────── -->
@@ -4445,7 +4485,8 @@ let revenueChart = new Chart(document.getElementById('revenueChart'), {
 // ═════════════════════════════════════════════════════
 //  CALL STATUS DONUT
 // ═════════════════════════════════════════════════════
-new Chart(document.getElementById('donutChart'), {
+const _donutEl = document.getElementById('donutChart');
+if (_donutEl) new Chart(_donutEl, {
   type: 'doughnut',
   data: {
     labels: ['Closed (PIF)', 'Closed (Deposit)', 'Follow-Up', 'No Close', 'Disqualified', 'No Show', 'Rescheduled'],
@@ -4481,7 +4522,7 @@ new Chart(document.getElementById('donutChart'), {
       },
     },
   },
-});
+}); // end donutChart guard
 
 // ═════════════════════════════════════════════════════
 //  REVENUE BY SOURCE (horizontal bar)
@@ -10153,6 +10194,126 @@ function markCallOutcome(id, status) {
     </div>
   </div>
 </div>
+
+
+<!-- ═══ AUTH LOGIN OVERLAY ════════════════════════ -->
+<div id="authOverlay">
+  <div class="auth-card">
+
+    <!-- Branding -->
+    <div>
+      <div class="auth-logo">
+        <img class="auth-emblem" src="data:image/png;base64,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" alt="PifOS" style="width:40px;height:40px;border-radius:0;background:transparent;">
+        <div class="auth-wordmark">Pif<span>OS</span></div>
+      </div>
+      <div class="auth-tagline">Sign in to your workspace</div>
+    </div>
+
+    <!-- Fields -->
+    <div class="auth-fields">
+      <div>
+        <div class="auth-field-label">Email</div>
+        <input class="auth-input" id="authEmail" type="email" placeholder="you@example.com"
+          onkeydown="if(event.key==='Enter')document.getElementById('authPassword').focus()">
+      </div>
+      <div>
+        <div class="auth-field-label">Password</div>
+        <input class="auth-input" id="authPassword" type="password" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter')pifosSignIn()">
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div class="auth-error" id="authError"></div>
+
+    <!-- Button -->
+    <button class="auth-btn" id="authBtn" onclick="pifosSignIn()">Sign In</button>
+
+    <div class="auth-footer">Secure access powered by Supabase</div>
+  </div>
+</div>
+
+<script>
+// ─── SUPABASE AUTH ─────────────────────────────────────
+const SUPA_URL = 'https://jnjetnmxoadckfcapbvm.supabase.co';
+const SUPA_KEY = 'sb_publishable_xUUu1xwV4eUtsYPt0L1OBA_oKI7-3C3';
+
+const _sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+function showDashboard() {
+  const overlay = document.getElementById('authOverlay');
+  overlay.classList.add('auth-hidden');
+  setTimeout(() => { overlay.style.display = 'none'; }, 320);
+}
+
+function showLogin() {
+  const overlay = document.getElementById('authOverlay');
+  overlay.style.display = 'flex';
+  setTimeout(() => { overlay.classList.remove('auth-hidden'); }, 10);
+  setTimeout(() => { document.getElementById('authEmail').focus(); }, 320);
+}
+
+async function pifosSignIn() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  const btn = document.getElementById('authBtn');
+
+  errEl.classList.remove('show');
+  if (!email || !password) {
+    errEl.textContent = 'Please enter your email and password.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+
+  const { data, error } = await _sb.auth.signInWithPassword({ email, password });
+
+  btn.disabled = false;
+  btn.textContent = 'Sign In';
+
+  if (error) {
+    errEl.textContent = error.message || 'Invalid email or password.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  // Update sidebar profile with logged-in user's info
+  const userEmail = data.user.email;
+  const userMeta = data.user.user_metadata || {};
+  const displayName = userMeta.full_name || userMeta.name || userEmail.split('@')[0];
+  const initials = displayName.replace(/[^a-zA-Z ]/g,'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() || '??';
+
+  const pmName = document.getElementById('pmDisplayName');
+  if (pmName) pmName.textContent = displayName;
+  const sbName = document.querySelector('.sidebar-profile-name');
+  if (sbName) sbName.textContent = displayName;
+  // Update avatar initials (sidebar-avatar is a plain text node)
+  const sbAvatar = document.querySelector('.sidebar-avatar');
+  if (sbAvatar) sbAvatar.textContent = initials;
+
+  showDashboard();
+}
+
+async function pifosSignOut() {
+  await _sb.auth.signOut();
+  closeProfileMenu && closeProfileMenu();
+  showLogin();
+}
+
+// ── On load: check for existing session ──────────────
+(async () => {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (session) {
+    // Already logged in — show dashboard immediately
+    const overlay = document.getElementById('authOverlay');
+    overlay.style.display = 'none';
+  }
+  // else overlay stays visible (default state)
+})();
+</script>
 
 </body>
 </html>
